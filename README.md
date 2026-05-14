@@ -1,4 +1,4 @@
-# Control your Digitech effect pedal under Linux!
+# Control your Digitech effect pedal
 
 gdigi is tool aimed to provide X-Edit functionality to Linux users. [Official website](http://desowin.org/gdigi/).
 
@@ -46,3 +46,30 @@ Example:
 gdigi -d hw:1,0,0
 gdigi --device=hw:1,0,0
 ```
+
+## Windows fallback (Python MIDI sender UI)
+
+The original C application depends on ALSA APIs and targets Linux directly.  
+For Windows usage, this repository now includes a Python UI sender:
+
+- Script: `gdigi_windows.py`
+- Purpose: choose a MIDI output port, build DigiTech SysEx messages, and send them
+
+### Windows requirements
+
+- Python 3.9+
+- A MIDI backend package:
+
+```powershell
+pip install mido python-rtmidi
+```
+
+### Run on Windows
+
+```powershell
+python gdigi_windows.py
+```
+
+Notes:
+- The sender can apply the same payload packing and checksum logic used by gdigi C message sending.
+- This is a sender-focused fallback UI; it does not replicate the full Linux GTK application flow.
