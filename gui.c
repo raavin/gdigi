@@ -951,122 +951,91 @@ GtkWidget *create_vbox(Effect *widgets, gint amt, gchar *label)
     return frame;
 }
 
-enum {
-  PRESET_NAME_COLUMN = 0,
-  PRESET_NUMBER_COLUMN,
-  PRESET_BANK_COLUMN,
-  NUM_COLUMNS
-};
-
 /**
- *  \param treeview the object which emitted the signal
- *  \param path the GtkTreePath for the activated row
- *  \param column the GtkTreeViewColumn in which the activation occurred
- *  \param model model holding preset names
+ *  \param combo the object which emitted the signal
+ *  \param data unused
  *
  *  Sets active device preset to preset selected by user.
  **/
-void row_activate_cb(GtkTreeView *treeview, GtkTreePath *path, GtkTreeViewColumn *column, GtkTreeModel *model) {
-    GtkTreeIter iter;
-    gint id;
-    gint bank;
+static void preset_combo_changed_cb(GtkComboBox *combo, gpointer data)
+{
+    const gchar *id = gtk_combo_box_get_active_id(combo);
+    gchar **parts;
 
-    gtk_tree_model_get_iter(model, &iter, path);
-    gtk_tree_model_get(model, &iter, PRESET_NUMBER_COLUMN, &id, PRESET_BANK_COLUMN, &bank, -1);
+    if (id == NULL)
+        return;
 
-    if ((bank != -1) && (id != -1)) {
-        switch_preset(bank, id);
+    parts = g_strsplit(id, ":", 2);
+    if (parts[0] != NULL && parts[1] != NULL) {
+        guint bank = (guint) g_ascii_strtoull(parts[0], NULL, 10);
+        guint preset = (guint) g_ascii_strtoull(parts[1], NULL, 10);
+        switch_preset(bank, preset);
         apply_current_preset();
     }
+    g_strfreev(parts);
 }
 
 /**
- *  \param model model to fill
+ *  \param combo combo box to fill
  *  \param bank preset bank
  *  \param name preset bank description visible to user
  *
- *  Appends to model preset names found in device preset bank.
+ *  Appends to combo box preset names found in device preset bank.
  **/
-static void fill_store_with_presets(GtkTreeStore *model, guint bank, gchar *name)
+static void fill_dropdown_with_presets(GtkComboBoxText *combo, guint bank, gchar *name)
 {
-    GtkTreeIter iter;
-    GtkTreeIter child_iter;
     int x;
-
     GStrv presets = query_preset_names(bank);
+
     g_return_if_fail(presets != NULL);
 
-    gtk_tree_store_append(model, &iter, NULL);
-    gtk_tree_store_set(model, &iter,
-                       PRESET_NAME_COLUMN, name,
-                       PRESET_NUMBER_COLUMN, -1,
-                       PRESET_BANK_COLUMN, -1,
-                       -1);
-
     for (x=0; x<g_strv_length(presets); x++) {
-        gchar *tmp = g_strdup_printf("%d - %s", x+1, presets[x]);
-
-        gtk_tree_store_append(model, &child_iter, &iter);
-        gtk_tree_store_set(model, &child_iter,
-                           PRESET_NAME_COLUMN, tmp,
-                           PRESET_NUMBER_COLUMN, x,
-                           PRESET_BANK_COLUMN, bank,
-                           -1);
-
-        g_free(tmp);
+        gchar *item_id = g_strdup_printf("%u:%d", bank, x);
+        gchar *item = g_strdup_printf("%s: %d - %s", name, x + 1, presets[x]);
+        gtk_combo_box_text_append(combo, item_id, item);
+        g_free(item_id);
+        g_free(item);
     }
+
     g_strfreev(presets);
 }
 
 /**
- *  \param model model to fill
+ *  \param combo combo box to fill
  *
- *  Fills model with preset names found on device.
+ *  Fills combo box with preset names found on device.
  **/
-static void fill_store(GtkTreeStore *model)
+static void fill_dropdown(GtkComboBoxText *combo)
 {
-    Device *device = g_object_get_data(G_OBJECT(model), "device");
+    Device *device = g_object_get_data(G_OBJECT(combo), "device");
 
     g_return_if_fail(device != NULL);
 
     gint i;
     for (i=0; i<device->n_banks; i++)
-        fill_store_with_presets(model,
-                                device->banks[i].bank,
-                                device->banks[i].name);
+        fill_dropdown_with_presets(combo,
+                                   device->banks[i].bank,
+                                   device->banks[i].name);
 }
 
 /**
  *  \param device device information
  *
- *  Creates treeview showing list of presets available on device.
+ *  Creates drop down list of presets available on device.
  *
- *  \return treeview containing all preset names found on device.
+ *  \return combo box containing all preset names found on device.
  **/
-GtkWidget *create_preset_tree(Device *device)
+GtkWidget *create_preset_dropdown(Device *device)
 {
-    GtkWidget *treeview;
-    GtkTreeStore *store;
-    GtkCellRenderer *renderer;
+    GtkWidget *combo;
 
-    store = gtk_tree_store_new(NUM_COLUMNS, G_TYPE_STRING, G_TYPE_INT, G_TYPE_INT);
-    g_object_set_data(G_OBJECT(store), "device", device);
-    fill_store(store);
+    combo = gtk_combo_box_text_new();
+    g_object_set_data(G_OBJECT(combo), "device", device);
+    fill_dropdown(GTK_COMBO_BOX_TEXT(combo));
+    g_signal_connect(G_OBJECT(combo), "changed",
+                     G_CALLBACK(preset_combo_changed_cb), NULL);
 
-    treeview = gtk_tree_view_new_with_model(GTK_TREE_MODEL(store));
-    g_object_unref(store);
-
-    renderer = gtk_cell_renderer_text_new();
-    gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(treeview),
-                                                -1, "Preset name",
-                                                renderer, "text",
-                                                PRESET_NAME_COLUMN, NULL);
-
-    g_object_set(G_OBJECT(treeview), "headers-visible", FALSE, NULL);
-    g_signal_connect(G_OBJECT(treeview), "realize", G_CALLBACK(gtk_tree_view_expand_all), NULL);
-    g_signal_connect(G_OBJECT(treeview), "row-activated", G_CALLBACK(row_activate_cb), GTK_TREE_MODEL(store));
-
-    return treeview;
+    return combo;
 }
 
 /**
@@ -1536,8 +1505,8 @@ void gui_create(Device *device)
     GtkWidget *vbox;
     GtkWidget *hbox;
     GtkWidget *widget;
+    GtkWidget *preset_box;
     GtkWidget *notebook;
-    GtkWidget *sw;             /* scrolled window to carry preset treeview */
     GdkPixbuf *icon;
 
     gint x;
@@ -1557,12 +1526,12 @@ void gui_create(Device *device)
     hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
     gtk_container_add(GTK_CONTAINER(vbox), hbox);
 
-    sw = gtk_scrolled_window_new(NULL, NULL);
-    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(sw), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
-    gtk_box_pack_start(GTK_BOX(hbox), sw, FALSE, FALSE, 0);
-
-    widget = create_preset_tree(device);
-    gtk_container_add(GTK_CONTAINER(sw), widget);
+    preset_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 4);
+    gtk_box_pack_start(GTK_BOX(hbox), preset_box, FALSE, FALSE, 4);
+    widget = gtk_label_new("Presets");
+    gtk_box_pack_start(GTK_BOX(preset_box), widget, FALSE, FALSE, 0);
+    widget = create_preset_dropdown(device);
+    gtk_box_pack_start(GTK_BOX(preset_box), widget, FALSE, FALSE, 0);
 
     notebook = gtk_notebook_new();
     gtk_box_pack_start(GTK_BOX(hbox), notebook, TRUE, TRUE, 2);
