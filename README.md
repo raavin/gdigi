@@ -50,10 +50,11 @@ gdigi --device=hw:1,0,0
 ## Windows fallback (Python MIDI sender UI)
 
 The original C application depends on ALSA APIs and targets Linux directly.  
-For Windows usage, this repository now includes a Python UI sender:
+For Windows usage, this repository includes a separate standalone Python app:
 
-- Script: `gdigi_windows.py`
-- Purpose: choose a MIDI output port, build DigiTech SysEx messages, and send them
+- Folder: `python_app/`
+- Script: `python_app/app.py`
+- Purpose: choose a MIDI output port, build DigiTech SysEx messages, and send them without compiling the C app
 
 ### Windows requirements
 
@@ -61,13 +62,15 @@ For Windows usage, this repository now includes a Python UI sender:
 - A MIDI backend package:
 
 ```powershell
-pip install mido python-rtmidi
+cd python_app
+pip install -r requirements.txt
 ```
 
 ### Run on Windows
 
 ```powershell
-python gdigi_windows.py
+cd python_app
+python app.py
 ```
 
 Notes:
