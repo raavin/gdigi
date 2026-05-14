@@ -136,22 +136,12 @@ class App:
         self.refresh_ports()
 
     def refresh_ports(self) -> None:
-        if mido is None:
-            messagebox.showerror(
-                "Missing dependency",
-                "The 'mido' package is required.\nInstall with:\n\npip install mido python-rtmidi",
-            )
-            return
-
         ports = mido.get_output_names()
         self.port_combo["values"] = ports
         if ports and self.port_var.get() not in ports:
             self.port_var.set(ports[0])
 
     def send_message(self) -> None:
-        if mido is None:
-            return
-
         port_name = self.port_var.get().strip()
         if not port_name:
             messagebox.showerror("Missing port", "Select a MIDI output port first.")
@@ -184,6 +174,9 @@ class App:
 
 
 def main() -> None:
+    if mido is None:
+        raise SystemExit("Missing dependency: install with `pip install -r requirements.txt`")
+
     root = tk.Tk()
     App(root)
     root.mainloop()
