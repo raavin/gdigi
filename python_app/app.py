@@ -113,7 +113,7 @@ class App:
         ttk.Label(frm, text="Payload bytes (hex, space/comma separated)").grid(
             row=4, column=0, columnspan=5, sticky="w", pady=(10, 0)
         )
-        self.payload_text = tk.Text(frm, width=64, height=6, wrap="word")
+        self.payload_text = tk.Text(frm, width=64, height=6, wrap="none")
         self.payload_text.grid(row=5, column=0, columnspan=5, pady=(2, 8), sticky="ew")
 
         self.pack_var = tk.BooleanVar(value=True)
