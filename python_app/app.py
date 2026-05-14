@@ -175,7 +175,7 @@ class App:
 
 def main() -> None:
     if mido is None:
-        raise SystemExit("Missing dependency: install with `pip install -r requirements.txt`")
+        raise SystemExit("Missing dependency: install with `pip install -r python_app/requirements.txt`")
 
     root = tk.Tk()
     App(root)
