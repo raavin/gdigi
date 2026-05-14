@@ -7,3 +7,5 @@ gdigi
 *.swp
 images/gdigi_icon.h
 core
+__pycache__/
+*.pyc
