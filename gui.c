@@ -984,14 +984,14 @@ static void preset_combo_changed_cb(GtkComboBox *combo, gpointer data)
  **/
 static void fill_dropdown_with_presets(GtkComboBoxText *combo, guint bank, gchar *name)
 {
-    int x;
+    guint x;
     GStrv presets = query_preset_names(bank);
 
     g_return_if_fail(presets != NULL);
 
     for (x=0; x<g_strv_length(presets); x++) {
-        gchar *item_id = g_strdup_printf("%u:%d", bank, x);
-        gchar *item = g_strdup_printf("%s: %d - %s", name, x + 1, presets[x]);
+        gchar *item_id = g_strdup_printf("%u:%u", bank, x);
+        gchar *item = g_strdup_printf("%s: %u - %s", name, x + 1, presets[x]);
         gtk_combo_box_text_append(combo, item_id, item);
         g_free(item_id);
         g_free(item);
